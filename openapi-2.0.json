@@ -1,0 +1,404 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "0.1.0",
+        "title": "Orangish Dealer (OrDeal) API",
+        "description": "Orangish Dealer (OrDeal or ordeal) is a generic application for shuffling and dealing cards from custom-defined stacks.\n"
+    },
+    "schemes": [
+        "https"
+    ],
+    "host": "ordeal.introm.it",
+    "basePath": "/api",
+    "parameters": {
+        "card_id": {
+            "name": "card_id",
+            "in": "path",
+            "type": "string",
+            "required": true
+        },
+        "deck_id": {
+            "name": "deck_id",
+            "in": "path",
+            "type": "string",
+            "required": true
+        }
+    },
+    "definitions": {
+        "card": {
+            "required": [
+                "content_uri",
+                "type",
+                "guid"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "description": "Base64-encoded version of the data, generally considered binary when decoded. This is optionally present, as the data will usually be retrieved via the content_uri field below.\n"
+                },
+                "content_uri": {
+                    "type": "string",
+                    "description": "The URI where the card data can be retrieved with the associated Content-Type (same as field type below)\n"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "the name of the card"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "The content-type associated to data."
+                },
+                "guid": {
+                    "type": "string",
+                    "description": "the URI identifying the card\n"
+                }
+            }
+        },
+        "card_patch": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/card_patch_item"
+            }
+        },
+        "card_patch_item": {
+            "description": "a JSON Patch document as defined by RFC 6902",
+            "required": [
+                "op",
+                "path"
+            ],
+            "properties": {
+                "op": {
+                    "type": "string",
+                    "description": "The operation to be performed",
+                    "enum": [
+                        "replace"
+                    ]
+                },
+                "path": {
+                    "type": "string",
+                    "description": "A JSON-Pointer",
+                    "enum": [
+                        "/name"
+                    ]
+                },
+                "value": {
+                    "type": "object",
+                    "description": "The value to be used within the operations."
+                }
+            }
+        },
+        "deck_meta": {
+            "description": "Metadata associated to a card deck (i.e. everything apart from the deck's content/URIs)\n",
+            "required": [
+                "name",
+                "total_cards",
+                "guid"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "the name of the deck"
+                },
+                "total_cards": {
+                    "type": "integer",
+                    "description": "the total number of cards in the deck"
+                },
+                "guid": {
+                    "type": "string",
+                    "description": "where the deck can be retrieved"
+                }
+            },
+            "example": {
+                "name": "die-hard",
+                "total_cards": 6,
+                "guid": "https://ordeal.introm.it/api/descriptor/deck/123"
+            }
+        },
+        "deck": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/deck_meta"
+                },
+                {
+                    "type": "object",
+                    "description": "Cards associated to a card deck (possibly including data)\n",
+                    "required": [
+                        "cards"
+                    ],
+                    "properties": {
+                        "cards": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/card"
+                            }
+                        }
+                    },
+                    "example": {
+                        "cards": []
+                    }
+                }
+            ]
+        }
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/card": {
+            "get": {
+                "x-mojo-to": "card#list",
+                "summary": "list of available cards",
+                "description": "The returned list includes cards with their characteristic but not their associated data (which can be retrieved separately).\n",
+                "responses": {
+                    "200": {
+                        "description": "List of available cards.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/card"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "x-mojo-to": "card#insert",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "add a card",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "card",
+                        "description": "The card to be added",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "content": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "description": "Add one card to the available ones. This can be then associated to one or more decks.\n",
+                "responses": {
+                    "200": {
+                        "description": "The added card data, without Base64 data",
+                        "schema": {
+                            "$ref": "#/definitions/card"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/{card_id}": {
+            "parameters": [
+                {
+                    "$ref": "#/parameters/card_id"
+                }
+            ],
+            "get": {
+                "x-mojo-to": "card#get",
+                "summary": "get a card, possibly with associated data",
+                "parameters": [
+                    {
+                        "name": "include_data",
+                        "in": "query",
+                        "description": "whether to include the Base64 data or not",
+                        "type": "boolean",
+                        "default": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the requested card, possibly with Base64 data",
+                        "schema": {
+                            "$ref": "#/definitions/card"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "x-mojo-to": "card#update",
+                "summary": "update a card's details",
+                "parameters": [
+                    {
+                        "name": "card_patch",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card_patch"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the updated card (without associated data)",
+                        "schema": {
+                            "$ref": "#/definitions/card"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/{card_id}/content": {
+            "parameters": [
+                {
+                    "$ref": "#/parameters/card_id"
+                }
+            ],
+            "get": {
+                "x-mojo-to": "card#get_data",
+                "summary": "get a card's data in the specific content-type",
+                "produces": [
+                    "image/png",
+                    "image/jpeg",
+                    "image/gif"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "307": {
+                        "description": "Temporary Redirect",
+                        "headers": {
+                            "Location": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "x-mojo-to": "card#upload",
+                "summary": "update a card's data and associated content-type",
+                "consumes": [
+                    "image/png",
+                    "image/jpeg",
+                    "image/gif"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "OK, No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deck": {
+            "get": {
+                "x-mojo-to": "deck#list",
+                "summary": "list available deck descriptors",
+                "description": "The returned list includes only metadata about the available card decks, i.e. it does not contain array of cards associated to each deck.\n",
+                "responses": {
+                    "200": {
+                        "description": "List of available decks",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/deck_meta"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "x-mojo-to": "deck#insert",
+                "summary": "add a new deck",
+                "responses": {
+                    "200": {
+                        "description": "Deck created",
+                        "schema": {
+                            "$ref": "#/definitions/deck"
+                        }
+                    }
+                }
+            }
+        },
+        "/deck/{deck_id}": {
+            "parameters": [
+                {
+                    "$ref": "#/parameters/deck_id"
+                }
+            ],
+            "get": {
+                "x-mojo-to": "deck#get",
+                "summary": "get the whole specific deck",
+                "parameters": [
+                    {
+                        "name": "shuffled",
+                        "in": "query",
+                        "description": "whether the returned deck should be shuffled or not",
+                        "type": "boolean",
+                        "default": true
+                    },
+                    {
+                        "name": "n_cards",
+                        "in": "query",
+                        "description": "how many cards to take (-1 means all of them)",
+                        "type": "integer",
+                        "default": -1
+                    },
+                    {
+                        "name": "include_data",
+                        "in": "query",
+                        "description": "whether to include card's data or not",
+                        "type": "boolean",
+                        "default": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "full or partial deck, shuffled by default",
+                        "schema": {
+                            "$ref": "#/definitions/deck"
+                        }
+                    },
+                    "404": {
+                        "description": "not found"
+                    }
+                }
+            },
+            "put": {
+                "x-mojo-to": "deck#overwrite",
+                "summary": "update the whole specific deck",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "x-mojo-to": "deck#remove",
+                "summary": "remove the deck",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    }
+}

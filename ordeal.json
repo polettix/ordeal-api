@@ -1,0 +1,3 @@
+{
+   "secrets": "<%= $ENV{SECRETS} || 'wh4t3v3r' %>"
+}
