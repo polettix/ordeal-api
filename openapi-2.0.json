@@ -211,6 +211,15 @@
                     "$ref": "#/parameters/card_id"
                 }
             ],
+            "delete": {
+                "x-mojo-to": "card#remove",
+                "summary": "remove the card",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
             "get": {
                 "x-mojo-to": "card#get",
                 "summary": "get a card, possibly with associated data",
