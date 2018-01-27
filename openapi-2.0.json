@@ -215,8 +215,11 @@
                 "x-mojo-to": "card#remove",
                 "summary": "remove the card",
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "OK"
+                    },
+                    "500": {
+                        "description": "Cannot perform action"
                     }
                 }
             },
