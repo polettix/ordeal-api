@@ -2,11 +2,13 @@ package WebService::Ordeal;
 use Mojo::Base 'Mojolicious';
 use Log::Any::Adapter;
 use Log::Any qw< $log >;
+use WebService::Ordeal::Model;
+use 5.024001;
+use experimental qw< signatures >;
+no warnings qw< experimental::signatures >;
 
 # This method will run once at server start
-sub startup {
-   my $self = shift;
-
+sub startup ($self) {
    $self->moniker($ENV{MONIKER} || 'ordeal');
    Log::Any::Adapter->set('MojoLog', logger => $self->app->log);
    my $config = $self->plugin('JSONConfig');
@@ -15,6 +17,11 @@ sub startup {
       [split m{\s+}mxs, $config->{secrets} || $ENV{SECRETS} || 'wh4t3v3r']
    );
    $log->warning($config->{secrets});
+
+   $self->helper(model => sub {
+         state $model = WebService::Ordeal::Model->create($self)
+      }
+   );
 
    # Documentation browser under "/perldoc"
    $self->plugin('PODRenderer');
